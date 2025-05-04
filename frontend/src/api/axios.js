@@ -1,7 +1,21 @@
 import axios from 'axios';
 
-// Use environment variable with fallback
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Use environment variable with fallback, prioritizing runtime config
+const getApiUrl = () => {
+  // First check if window.ENV_CONFIG exists (set by Docker)
+  if (window.ENV_CONFIG && window.ENV_CONFIG.VITE_API_URL) {
+    return window.ENV_CONFIG.VITE_API_URL;
+  }
+  // Then check Vite environment variables
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  // Fallback
+  return 'http://localhost:5000';
+};
+
+const API_URL = getApiUrl();
+console.log('API URL:', API_URL); // Debugging help
 
 const api = axios.create({
   baseURL: API_URL,

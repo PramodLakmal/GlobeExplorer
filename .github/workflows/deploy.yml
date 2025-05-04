@@ -42,17 +42,12 @@ jobs:
           echo "JWT_SECRET=$JWT_SECRET" > .env
           echo "EC2_HOST=$EC2_HOST" >> .env
           
-          # Make check-status.sh executable
-          chmod +x check-status.sh
+          # Make scripts executable
+          chmod +x check-status.sh redeploy.sh
           
           # Copy files to EC2
           scp -r $(pwd)/* $EC2_USERNAME@$EC2_HOST:~/app/
           scp .env $EC2_USERNAME@$EC2_HOST:~/app/
           
-          # SSH into EC2 and run docker-compose - using single commands instead of heredoc
-          ssh $EC2_USERNAME@$EC2_HOST "cd ~/app && chmod +x check-status.sh && docker-compose down && docker-compose up -d --build && docker image prune -f"
-          
-          # Print deployment status
-          echo "Deployment complete! Waiting 30 seconds for services to start..."
-          sleep 30
-          ssh $EC2_USERNAME@$EC2_HOST "cd ~/app && ./check-status.sh" 
+          # SSH into EC2 and run docker-compose
+          ssh $EC2_USERNAME@$EC2_HOST "cd ~/app && chmod +x check-status.sh redeploy.sh && ./redeploy.sh" 
