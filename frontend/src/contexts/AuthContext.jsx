@@ -5,9 +5,12 @@ const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
+// Use environment variable for API URL with fallback
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 // Create a singleton axios instance to be used throughout the app
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: `${API_URL}/api`,
 });
 
 export const AuthProvider = ({ children }) => {
@@ -162,4 +165,5 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>; }
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}

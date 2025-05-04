@@ -22,16 +22,15 @@ RUN npm install -g serve
 
 COPY --from=build /app/dist ./dist
 
-# Create a script to inject environment variables at runtime
-RUN echo '#!/bin/sh \n\
-cat > ./dist/env-config.js << EOF \n\
-window.ENV_CONFIG = { \n\
-  VITE_API_URL: "${VITE_API_URL}" \n\
-}; \n\
-EOF \n\
-\n\
-exec "$@" \n\
-' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+# Create a script properly to inject environment variables at runtime
+RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
+    echo 'cat > ./dist/env-config.js << EOF' >> /app/entrypoint.sh && \
+    echo 'window.ENV_CONFIG = {' >> /app/entrypoint.sh && \
+    echo '  VITE_API_URL: "${VITE_API_URL}"' >> /app/entrypoint.sh && \
+    echo '};' >> /app/entrypoint.sh && \
+    echo 'EOF' >> /app/entrypoint.sh && \
+    echo 'exec "$@"' >> /app/entrypoint.sh && \
+    chmod +x /app/entrypoint.sh
 
 EXPOSE 3000
 
