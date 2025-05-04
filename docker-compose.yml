@@ -25,12 +25,15 @@ services:
       - app-network
   
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_URL=http://${EC2_HOST:-localhost}:5000
     restart: always
     depends_on:
       - backend
     environment:
-      - VITE_API_URL=http://localhost:5000
+      - VITE_API_URL=http://${EC2_HOST:-localhost}:5000
     ports:
       - "3000:3000"
     networks:
