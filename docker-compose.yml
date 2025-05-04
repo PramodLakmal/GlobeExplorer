@@ -19,6 +19,7 @@ services:
       - MONGO_URI=mongodb://mongodb:27017/countries-app
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRE=30d
+      - EC2_HOST=${EC2_HOST:-localhost}
     ports:
       - "5000:5000"
     networks:

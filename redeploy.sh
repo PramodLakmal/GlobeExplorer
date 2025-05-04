@@ -2,6 +2,9 @@
 
 # Redeploy script for EC2
 
+# Make scripts executable
+chmod +x check-status.sh fix-cors.sh
+
 # Stop and remove all containers
 echo "Stopping and removing all containers..."
 docker-compose down
@@ -24,4 +27,6 @@ echo "Checking deployment status..."
 
 echo "Deployment complete!"
 echo "Frontend: http://$(curl -s http://checkip.amazonaws.com):3000"
-echo "Backend API: http://$(curl -s http://checkip.amazonaws.com):5000" 
+echo "Backend API: http://$(curl -s http://checkip.amazonaws.com):5000"
+echo ""
+echo "If you encounter CORS issues, run: ./fix-cors.sh" 
