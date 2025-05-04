@@ -6,36 +6,26 @@ services:
     restart: always
     volumes:
       - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
     networks:
       - app-network
-    healthcheck:
-      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
   
   backend:
     build: ./backend
     restart: always
     depends_on:
-      mongodb:
-        condition: service_healthy
+      - mongodb
     environment:
       - PORT=5000
       - MONGO_URI=mongodb://mongodb:27017/countries-app
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRE=30d
+      - NODE_ENV=production
     ports:
       - "5000:5000"
     networks:
       - app-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
   
   frontend:
     build:
@@ -44,8 +34,7 @@ services:
         - VITE_API_URL=http://${EC2_HOST:-localhost}:5000
     restart: always
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     environment:
       - VITE_API_URL=http://${EC2_HOST:-localhost}:5000
     ports:
