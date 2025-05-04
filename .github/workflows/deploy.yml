@@ -1,0 +1,58 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Deploy to EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          # Add EC2 host to known hosts
+          mkdir -p ~/.ssh
+          ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
+          
+          # Create .env file for JWT_SECRET
+          echo "JWT_SECRET=$JWT_SECRET" > .env
+          
+          # Copy files to EC2
+          scp -r $(pwd)/* $EC2_USERNAME@$EC2_HOST:~/app/
+          scp .env $EC2_USERNAME@$EC2_HOST:~/app/
+          
+          # SSH into EC2 and run docker-compose
+          ssh $EC2_USERNAME@$EC2_HOST << 'EOF'
+            cd ~/app
+            # Stop any running containers
+            docker-compose down
+            # Build and start containers
+            docker-compose up -d --build
+            
+            # Clean up unused images
+            docker image prune -f
+          EOF 
