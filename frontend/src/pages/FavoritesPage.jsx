@@ -41,7 +41,27 @@ const FavoritesPage = () => {
             Authorization: `Bearer ${token}`,
           },
         });
-        setFavorites(response.data.favorites || []);
+        
+        // Log the actual response to see what the API is returning
+        console.log('Favorites API response:', response.data);
+        
+        // Handle different response structures
+        let favoritesArray = [];
+        if (response.data.favorites) {
+          favoritesArray = response.data.favorites;
+        } else if (response.data.favoriteCountries) {
+          favoritesArray = response.data.favoriteCountries;
+        } else if (Array.isArray(response.data)) {
+          favoritesArray = response.data;
+        }
+        
+        // Ensure we're always working with an array of country codes
+        favoritesArray = favoritesArray.map(fav => 
+          typeof fav === 'string' ? fav : fav.countryCode || fav.code || fav
+        );
+        
+        console.log('Processed favorites array:', favoritesArray);
+        setFavorites(favoritesArray);
       } catch (err) {
         console.error('Error fetching favorites:', err);
         setError('Failed to load favorites');
@@ -62,8 +82,11 @@ const FavoritesPage = () => {
         },
       });
 
+      console.log('Remove favorite response:', response.data);
+      
+      // Handle different response structures
       if (response.data.success) {
-        setFavorites((prev) => prev.filter((fav) => fav.countryCode !== countryId));
+        setFavorites(prev => prev.filter(code => code !== countryId));
         toast.success('Removed from favorites');
       }
     } catch (err) {
@@ -144,14 +167,20 @@ const FavoritesPage = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {/* Using the actual structure that comes from the backend, which is just an array of country codes */}
-            {Array.isArray(favorites) && favorites.map((countryCode) => (
-              <FavoriteCountryCard 
-                key={countryCode} 
-                countryCode={countryCode} 
-                onRemove={handleRemoveFavorite} 
-              />
-            ))}
+            {/* Render favorite country cards */}
+            {Array.isArray(favorites) && favorites.length > 0 ? (
+              favorites.map((countryCode) => (
+                <FavoriteCountryCard 
+                  key={countryCode} 
+                  countryCode={countryCode} 
+                  onRemove={handleRemoveFavorite} 
+                />
+              ))
+            ) : (
+              <p className="col-span-full text-gray-600 dark:text-gray-400 text-center py-8">
+                No favorites found. Try refreshing the page.
+              </p>
+            )}
           </div>
         )}
       </div>
