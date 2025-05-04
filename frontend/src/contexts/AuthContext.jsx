@@ -5,8 +5,17 @@ const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
-// Use environment variable for API URL with fallback
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Use environment variables with priority:
+// 1. Runtime env from window.ENV_CONFIG (set by Docker entrypoint)
+// 2. Build-time env from import.meta.env (set during build)
+// 3. Fallback to localhost
+const API_URL = 
+  (window.ENV_CONFIG?.VITE_API_URL) || 
+  import.meta.env.VITE_API_URL || 
+  'http://localhost:5000';
+
+// Log the API URL for debugging
+console.log('AuthContext using API URL:', API_URL);
 
 // Create a singleton axios instance to be used throughout the app
 const api = axios.create({
@@ -38,6 +47,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
+        console.log('Attempting to load user with token, API URL:', API_URL);
         const { data } = await api.get('/auth/me');
         console.log('User data loaded:', data);
         setUser(data.user);
@@ -58,6 +68,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password) => {
     try {
+      console.log('Attempting to register user to API:', API_URL);
       const { data } = await api.post('/auth/register', {
         name,
         email,
@@ -78,6 +89,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      console.log('Attempting to login to API:', API_URL);
       const { data } = await api.post('/auth/login', {
         email,
         password,
@@ -105,6 +117,7 @@ export const AuthProvider = ({ children }) => {
 
   const addFavorite = async (countryCode) => {
     try {
+      console.log(`Attempting to add favorite ${countryCode} to API:`, API_URL);
       const { data } = await api.post('/users/favorites', { countryCode });
 
       setUser({
@@ -117,6 +130,7 @@ export const AuthProvider = ({ children }) => {
         message: data.message,
       };
     } catch (error) {
+      console.error('Add favorite error:', error);
       return {
         success: false,
         message:
@@ -127,6 +141,7 @@ export const AuthProvider = ({ children }) => {
 
   const removeFavorite = async (countryCode) => {
     try {
+      console.log(`Attempting to remove favorite ${countryCode} from API:`, API_URL);
       const { data } = await api.delete(`/users/favorites/${countryCode}`);
 
       setUser({
@@ -139,6 +154,7 @@ export const AuthProvider = ({ children }) => {
         message: data.message,
       };
     } catch (error) {
+      console.error('Remove favorite error:', error);
       return {
         success: false,
         message:

@@ -28,6 +28,11 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
+      - name: Update frontend environment file
+        run: |
+          # Replace the API URL in the frontend .env file with the EC2 host
+          echo "VITE_API_URL=http://${{ secrets.EC2_HOST }}:5000" > frontend/.env
+
       - name: Deploy to EC2
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
@@ -38,7 +43,7 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
           
-          # Create .env file with all required variables
+          # Create .env file with all required variables - use explicit values
           echo "JWT_SECRET=$JWT_SECRET" > .env
           echo "EC2_HOST=$EC2_HOST" >> .env
           
