@@ -2,6 +2,15 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
+import { toast } from 'react-toastify';
+
+// Get API URL from environment variables with fallback
+const API_URL = 
+  (window.ENV_CONFIG?.VITE_API_URL) || 
+  import.meta.env.VITE_API_URL || 
+  'http://localhost:5000';
+
+console.log('FavoritesPage using API URL:', API_URL);
 
 const FavoritesPage = () => {
   const { user, token, loading: authLoading } = useAuth();
@@ -26,25 +35,16 @@ const FavoritesPage = () => {
 
       setIsLoading(true);
       try {
-        const response = await axios.get('http://localhost:5000/api/users/favorites', {
-          headers: { Authorization: `Bearer ${token}` }
+        console.log('Fetching favorites with API URL:', API_URL);
+        const response = await axios.get(`${API_URL}/api/users/favorites`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
-        
-        console.log('Favorites response:', response.data);
-        
-        // Make sure we're setting an array to the favorites state
-        if (response.data && response.data.favoriteCountries) {
-          setFavorites(Array.isArray(response.data.favoriteCountries) 
-            ? response.data.favoriteCountries 
-            : []);
-        } else {
-          // Default to empty array if response data structure is unexpected
-          setFavorites([]);
-        }
+        setFavorites(response.data.favorites || []);
       } catch (err) {
         console.error('Error fetching favorites:', err);
-        setError('Failed to load your favorite countries');
-        setFavorites([]); // Ensure favorites is always an array
+        setError('Failed to load favorites');
       } finally {
         setIsLoading(false);
       }
@@ -55,22 +55,20 @@ const FavoritesPage = () => {
 
   const handleRemoveFavorite = async (countryId) => {
     try {
-      const response = await axios.delete(`http://localhost:5000/api/users/favorites/${countryId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+      console.log(`Removing favorite ${countryId} with API URL:`, API_URL);
+      const response = await axios.delete(`${API_URL}/api/users/favorites/${countryId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
-      
-      // Update favorites based on the response from the server
-      if (response.data && response.data.favoriteCountries) {
-        setFavorites(Array.isArray(response.data.favoriteCountries) 
-          ? response.data.favoriteCountries 
-          : []);
-      } else {
-        // If we don't get updated favorites from server, filter the current state
-        setFavorites(favorites.filter(fav => fav !== countryId));
+
+      if (response.data.success) {
+        setFavorites((prev) => prev.filter((fav) => fav.countryCode !== countryId));
+        toast.success('Removed from favorites');
       }
     } catch (err) {
       console.error('Error removing favorite:', err);
-      setError('Failed to remove country from favorites');
+      toast.error('Failed to remove favorite');
     }
   };
 

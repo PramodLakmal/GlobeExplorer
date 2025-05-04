@@ -13,6 +13,7 @@ import NotFoundPage from './pages/NotFoundPage';
 // Components
 import Navbar from './components/ui/Navbar';
 import Footer from './components/ui/Footer';
+import Debug from './components/Debug';
 
 function App() {
   const { loading } = useAuth();
@@ -42,7 +43,10 @@ function App() {
       </main>
       
       <Footer />
-      </div>
+      
+      {/* Debug component - only shown in development or when needed */}
+      {(import.meta.env.DEV || import.meta.env.VITE_SHOW_DEBUG) && <Debug />}
+    </div>
   );
 }
 

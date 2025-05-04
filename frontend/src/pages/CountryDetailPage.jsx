@@ -4,13 +4,21 @@ import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-toastify';
 
+// Get API URL from environment variables with fallback
+const API_URL = 
+  (window.ENV_CONFIG?.VITE_API_URL) || 
+  import.meta.env.VITE_API_URL || 
+  'http://localhost:5000';
+
+console.log('CountryDetailPage using API URL:', API_URL);
+
 const CountryDetailPage = () => {
   const { code } = useParams();
   const [country, setCountry] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFavorite, setIsFavorite] = useState(false);
-  const { user, token } = useAuth();
+  const { user, token, addFavorite, removeFavorite } = useAuth();
 
   useEffect(() => {
     const fetchCountry = async () => {
@@ -21,8 +29,9 @@ const CountryDetailPage = () => {
           setCountry(response.data[0]);
           // Check if the country is in user's favorites
           if (user && token) {
+            console.log(`Checking favorite status for ${code} with API URL: ${API_URL}`);
             const favResponse = await axios.get(
-              `http://localhost:5000/api/users/favorites/check/${code}`,
+              `${API_URL}/api/users/favorites/check/${code}`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
             setIsFavorite(favResponse.data.isFavorite);
@@ -51,42 +60,64 @@ const CountryDetailPage = () => {
     console.log('🔍 Current favorite status:', isFavorite);
     console.log('🔍 User:', user);
     console.log('🔍 Token available:', !!token);
+    console.log('🔍 Using API URL:', API_URL);
 
     try {
       if (isFavorite) {
         console.log('🔍 Removing from favorites');
-        // Use AuthContext method instead of direct axios call
-        const result = await axios.delete(`http://localhost:5000/api/users/favorites/${code}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        console.log('✅ Remove favorite response:', result.data);
-        
-        if (result.data.success) {
-          setIsFavorite(false);
-          toast.success('Removed from favorites');
+        // Use AuthContext method if available, otherwise direct axios call
+        if (typeof removeFavorite === 'function') {
+          const result = await removeFavorite(code);
+          if (result.success) {
+            setIsFavorite(false);
+            toast.success('Removed from favorites');
+          } else {
+            toast.error(result.message || 'Failed to remove from favorites');
+          }
         } else {
-          toast.error(result.data.message || 'Failed to remove from favorites');
+          const result = await axios.delete(`${API_URL}/api/users/favorites/${code}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          console.log('✅ Remove favorite response:', result.data);
+          
+          if (result.data.success) {
+            setIsFavorite(false);
+            toast.success('Removed from favorites');
+          } else {
+            toast.error(result.data.message || 'Failed to remove from favorites');
+          }
         }
       } else {
         console.log('🔍 Adding to favorites');
-        // Use direct axios call with very explicit params
-        const result = await axios({
-          method: 'post',
-          url: 'http://localhost:5000/api/users/favorites',
-          data: { countryCode: code },
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+        // Use AuthContext method if available, otherwise direct axios call
+        if (typeof addFavorite === 'function') {
+          const result = await addFavorite(code);
+          if (result.success) {
+            setIsFavorite(true);
+            toast.success('Added to favorites');
+          } else {
+            toast.error(result.message || 'Failed to add to favorites');
           }
-        });
-        
-        console.log('✅ Add favorite response:', result.data);
-        
-        if (result.data.success) {
-          setIsFavorite(true);
-          toast.success('Added to favorites');
         } else {
-          toast.error(result.data.message || 'Failed to add to favorites');
+          // Use direct axios call with very explicit params
+          const result = await axios({
+            method: 'post',
+            url: `${API_URL}/api/users/favorites`,
+            data: { countryCode: code },
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          console.log('✅ Add favorite response:', result.data);
+          
+          if (result.data.success) {
+            setIsFavorite(true);
+            toast.success('Added to favorites');
+          } else {
+            toast.error(result.data.message || 'Failed to add to favorites');
+          }
         }
       }
     } catch (err) {
